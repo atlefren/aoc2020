@@ -30,7 +30,9 @@ const main = async () => {
   const testPart1Res = part1(testInput, targetSum);
   console.log(testPart1Res === 514579);
 
+  console.time("part1");
   const part1Res = part1(input, targetSum);
+  console.timeEnd("part1");
   console.log(`Part1: ${part1Res}`);
 
   console.log(part1Res === 1020099);
@@ -38,7 +40,9 @@ const main = async () => {
   const testPart2Res = part2(testInput, targetSum);
   console.log(testPart2Res === 241861950);
 
+  console.time("part2");
   const part2Res = part2(input, targetSum);
+  console.timeEnd("part2");
   console.log(`Part2: ${part2Res}`);
 
   console.log(part2Res === 49214880);
