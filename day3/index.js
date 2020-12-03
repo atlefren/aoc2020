@@ -2,19 +2,11 @@ const readFile = require("../readFile");
 
 const getPos = (line, x) => line[x % line.length];
 
-const task1 = (input, down, right) => {
-  const height = input.length;
-
-  let y = 0;
-  let x = 0;
-  let numTrees = 0;
-  while (y + down < height) {
-    y += down;
-    x += right;
-    numTrees += getPos(input[y], x) === "#" ? 1 : 0;
-  }
-  return numTrees;
-};
+const task1 = (input, down, right) =>
+  input
+    .filter((_, i) => i % down == 0)
+    .map((l, i) => getPos(l, right * i))
+    .filter((p) => p === "#").length;
 
 const task2 = (input, slopes) =>
   slopes.reduce((acc, slope) => acc * task1(input, slope.d, slope.r), 1);
