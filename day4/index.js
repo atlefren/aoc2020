@@ -1,61 +1,51 @@
 const readFile = require("../readFile");
 
-const parseLine = (l) => {
-  return l
+const parseLine = (l) =>
+  l
     .replace(/\n|\r/g, " ")
     .split(" ")
     .reduce((acc, el) => {
       const [key, value] = el.split(":");
       return { [key]: value, ...acc };
     }, {});
-};
 
 const readPassports = (file) => readFile(file, parseLine, "\n\n");
 
 const isValid = (requiredFields) => (fields) =>
-  requiredFields.every((rf) => {
-    var i = fields.includes(rf);
-    return i;
-  });
+  requiredFields.every((rf) => fields.includes(rf));
 
 const task1 = (input, validate) =>
   input.map((p) => validate(Object.keys(p))).filter((v) => v).length;
 
-const validateInt = (min, max) => (data) => {
-  const year = parseInt(data);
-  return year >= min && year <= max;
-};
+const isBetween = (int, min, max) => int >= min && int <= max;
 
-const validateHeight = (str) => {
-  if (!str) {
-    return false;
-  }
-  if (str.endsWith("cm")) {
-    return validateInt(150, 193)(str.replace("cm", ""));
-  }
-  if (str.endsWith("in")) {
-    return validateInt(59, 76)(str.replace("in", ""));
-  }
-  return false;
-};
+const validateInt = (min, max) => (data) =>
+  isBetween(parseInt(data, 10), min, max);
+
+const remove = (str, chars) => str.replace(chars, "");
+
+const validateHeight = (str) =>
+  str.endsWith("cm")
+    ? validateInt(150, 193)(remove(str, "cm"))
+    : str.endsWith("in")
+    ? validateInt(59, 76)(remove(str, "in"))
+    : false;
 
 const validateEnum = (values) => (value) => values.includes(value);
 
-const validatePid = (pid) => pid.length === 9 && /[0-9]{9}/g.exec(pid);
+const validateRegex = (regex) => (value) => new RegExp(regex).exec(value);
 
-const validateHcl = (hcl) => hcl.length === 7 && /#([0-9]|[a-f]){6}/g.exec(hcl);
-
-const task2 = (input, fields) => {
-  const isPresent = isValid(Object.keys(fields));
-
-  return input
+const validate = (isPresent) => (input, fields) =>
+  input
     .map(
       (p) =>
         isPresent(Object.keys(p)) &&
         Object.keys(fields).every((k) => fields[k](p[k]))
     )
     .filter((v) => v).length;
-};
+
+const task2 = (input, fields) =>
+  validate(isValid(Object.keys(fields)))(input, fields);
 
 const main = async () => {
   const fields = {
@@ -63,9 +53,9 @@ const main = async () => {
     iyr: validateInt(2010, 2020),
     eyr: validateInt(2020, 2030),
     hgt: validateHeight,
-    hcl: validateHcl,
+    hcl: validateRegex(/^#([0-9]|[a-f]){6}$/g),
     ecl: validateEnum(["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]),
-    pid: validatePid,
+    pid: validateRegex(/^[0-9]{9}$/g),
   };
 
   const validate = isValid(Object.keys(fields));
