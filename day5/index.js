@@ -37,20 +37,24 @@ const getSeatIds = (input) => input.map(getSeatId);
 
 const task1 = (input) => Math.max.apply(Math, getSeatIds(input));
 
-const task2 = (input) => {
-  const ids = getSeatIds(input).sort();
-
-  //ffs
-  for (const [i, id] of ids.entries()) {
-    const candidate = id + 1;
-
-    if (i !== 0 && i !== ids.length - 1) {
-      if (candidate != ids[i + 1]) {
-        return candidate;
-      }
-    }
-  }
+Array.prototype.pairs = function () {
+  return pairs(this);
 };
+
+const pairs = (arr) =>
+  arr.reduce(
+    (acc, elem, i) =>
+      i % 2 === 1
+        ? [...acc.slice(0, -1), [...acc[acc.length - 1], elem]]
+        : [...acc, [elem]],
+
+    []
+  );
+
+const isNonAdjacent = (ids) => ids[1] - ids[0] > 1;
+
+const task2 = (input) =>
+  getSeatIds(input).sort().pairs().find(isNonAdjacent)[0] + 1;
 
 const main = async () => {
   const testinput1 = await readFile("testinput.txt");
