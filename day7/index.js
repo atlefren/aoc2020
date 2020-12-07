@@ -43,24 +43,15 @@ const task1 = (input, color) =>
 
 const getRuleForColor = (rules, color) => rules.find((r) => r.color === color);
 
-const getChildren = (rules, color) =>
-  compose(getRuleForColor, (r) =>
-    r
-      ? r.contains.map((c) => ({
-          num: c.num,
-          color: c.color,
-          children: getChildren(rules, c.color),
-        }))
-      : []
+const countChildren = (rules, color) =>
+  compose(getRuleForColor, (rule) =>
+    rule.contains.reduce(
+      (sum, c) => sum + c.num * countChildren(rules, c.color),
+      1
+    )
   )(rules, color);
 
-const countChildren = (children) =>
-  children.length === 0
-    ? 1
-    : children.reduce((sum, c) => sum + c.num * countChildren(c.children), 1);
-
-const task2 = (input, color) =>
-  countChildren(getChildren(input.map(parseRule), color)) - 1;
+const task2 = (input, color) => countChildren(input.map(parseRule), color) - 1;
 
 const main = async () => {
   const testinput1 = await readFile("testinput.txt");
