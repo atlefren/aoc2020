@@ -1,51 +1,58 @@
 const readFile = require("../readFile");
 
-const parseBag = (bag) => {
-  const [_, num, color] = /^(\d+) (\w+ \w+) bags?/g.exec(bag.trim());
+const compose = (f1, f2) => (...args) => f2(f1(...args));
 
-  return { num: parseInt(num, 10), color };
-};
+const regexBag = (bag) => /^(\d+) (\w+ \w+) bags?/g.exec(bag.trim());
+
+const parseBag = (bag) =>
+  compose(regexBag, ([_, num, color]) => ({ num: parseInt(num, 10), color }))(
+    bag
+  );
 
 const parseContains = (contains) =>
   contains.trim() === "no other bags." ? [] : contains.split(",").map(parseBag);
 
+const split = (rule) => rule.split("contain");
+
+const parseRule = (rule) =>
+  compose(split, ([container, contains]) => ({
+    color: container.replace("bags", "").trim(),
+    contains: parseContains(contains),
+  }))(rule);
+
 const canContain = (bags, color) =>
   bags.filter((b) => b.contains.some((c) => c.color === color));
 
-const parseRule = (rule) => {
-  const [container, contains] = rule.split("contain");
-  const color = container.replace("bags", "").trim();
-  return { color, contains: parseContains(contains) };
-};
-
 const distinct = (lst) => Array.from(new Set(lst));
 
-const findColors = (rules, color) => {
-  const bags = canContain(rules, color);
-  return bags.length === 0
-    ? []
-    : [
-        ...bags,
-        ...bags.reduce(
-          (acc, bag) => [...acc, ...findColors(rules, bag.color)],
-          []
-        ),
-      ];
-};
+const findColors = (rules, color) =>
+  compose(canContain, (bags) =>
+    bags.length === 0
+      ? []
+      : [
+          ...bags,
+          ...bags.reduce(
+            (acc, bag) => [...acc, ...findColors(rules, bag.color)],
+            []
+          ),
+        ]
+  )(rules, color);
 
 const task1 = (input, color) =>
   distinct(findColors(input.map(parseRule), color).map((r) => r.color)).length;
 
-const getChildren = (rules, color) => {
-  const r = rules.find((r) => r.color === color);
-  return r
-    ? r.contains.map((c) => ({
-        num: c.num,
-        color: c.color,
-        children: getChildren(rules, c.color),
-      }))
-    : [];
-};
+const getRuleForColor = (rules, color) => rules.find((r) => r.color === color);
+
+const getChildren = (rules, color) =>
+  compose(getRuleForColor, (r) =>
+    r
+      ? r.contains.map((c) => ({
+          num: c.num,
+          color: c.color,
+          children: getChildren(rules, c.color),
+        }))
+      : []
+  )(rules, color);
 
 const countChildren = (children) =>
   children.length === 0
