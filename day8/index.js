@@ -16,24 +16,48 @@ const replace = (program, idx) =>
     i === idx ? { ...p, instruction: flip(p.instruction) } : p
   );
 
-const match = (d, val) => d[val]();
+const isFunction = (f) => !!(f && f.constructor && f.call && f.apply);
+
+const toList = (l) => (Array.isArray(l) ? l : [l]);
+
+const match = (operations, params) => {
+  const op = operations.find((o) =>
+    isFunction(o[0]) ? o[0](...toList(params)) : o[0] === params
+  );
+
+  return isFunction(op[1]) ? op[1]() : op[1];
+};
 
 const eval = (op, idx, acc) =>
   match(
-    {
-      acc: () => [idx + 1, acc + op.value],
-      nop: () => [idx + 1, acc],
-      jmp: () => [idx + op.value, acc],
-    },
+    [
+      ["acc", [idx + 1, acc + op.value, null]],
+      ["nop", [idx + 1, acc, null]],
+      ["jmp", [idx + op.value, acc, null]],
+      [
+        () => true,
+        [idx + op.value, acc, `unknown instruction: ${op.instruction}`],
+      ],
+    ],
     op.instruction
   );
 
-const execute = (program, idx = 0, acc = 0, used = []) =>
-  used.includes(idx)
-    ? { exitCode: 1, acc }
-    : idx < 0 || idx >= program.length
-    ? { exitCode: 0, acc }
-    : execute(program, ...eval(program[idx], idx, acc), [idx, ...used]);
+const execute = (program, idx = 0, acc = 0, err = null, used = []) =>
+  match([
+    [() => err !== null, () => ({ exitCode: 1, acc, message: err })],
+    [
+      () => used.includes(idx),
+      () => ({ exitCode: 1, acc, message: "infinite loop" }),
+    ],
+    [
+      () => idx < 0 || idx >= program.length,
+      () => ({ exitCode: 0, acc, message: "completed" }),
+    ],
+    [
+      () => true,
+      () => execute(program, ...eval(program[idx], idx, acc), [idx, ...used]),
+    ],
+  ]);
 
 const task1 = (program) => execute(program).acc;
 
@@ -53,6 +77,9 @@ const main = async () => {
 
   console.log(task2(testinput) === 8);
   console.log(task2(input) === 1543);
+
+  //test checking for invalid instrauction
+  console.log(execute(await readProgram("meh.txt")));
 };
 
 main();
