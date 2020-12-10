@@ -22,32 +22,33 @@ const getPairDiff = (p) => p[1] - p[0];
 const task1 = (inputs) =>
   getNums(pairs(getCompleteList(inputs)).map(getPairDiff));
 
-const within = (lst, target) => lst.filter((e) => e - target <= 0);
+const within = (target) => (lst) => lst.filter((e) => e - target <= 0);
 
-const countBranches = (es, cache, target) =>
-  es.reduce((acc, e) => acc + (e === target ? 1 : cache[e]), 0);
+const countBranches = (es, cache) =>
+  es.reduce((acc, e) => acc + (cache[e] ? cache[e] : 1), 0);
 
-const updateCache = (cache, branch, target) => ({
+const updateCache = (cache, branch) => ({
   ...cache,
-  [branch.num]: countBranches(branch.to, cache, target),
+  [branch.num]: countBranches(branch.to, cache),
 });
 
-const computeNext = (branches, cache, target) =>
+const computeNext = (branches, cache) =>
   branches.length > 1
-    ? traverse(branches.slice(1), target, cache)
+    ? traverse(branches.slice(1), cache)
     : cache[branches[0].num];
 
-const traverse = (branches, target, cache = {}) =>
-  computeNext(branches, updateCache(cache, branches[0], target));
+const traverse = (branches, cache = {}) =>
+  computeNext(branches, updateCache(cache, branches[0]));
 
-const getBranches = (inputs) =>
-  inputs.slice(0, -1).map((num, i) => ({
-    num,
-    to: within(inputs.slice(i + 1), num + 3),
-  }));
+const getBranch = (inputs) => (num, i) => ({
+  num,
+  to: within(num + 3)(inputs.slice(i + 1)),
+});
+
+const getBranches = (inputs) => inputs.slice(0, -1).map(getBranch(inputs));
 
 const task2 = (inputs) =>
-  traverse(getBranches(getCompleteList(inputs)).reverse(), getTarget(inputs));
+  traverse(getBranches(getCompleteList(inputs)).reverse());
 
 const main = async () => {
   const testinput1 = await readInts("testinput.txt");
