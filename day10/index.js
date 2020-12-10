@@ -11,39 +11,43 @@ const pairs = (arr) =>
 
 const getNum = (input, val) => input.filter((d) => d === val).length;
 
-const task1 = (inputs) => {
-  const target = max(inputs) + 3;
+const getTarget = (inputs) => max(inputs) + 3;
 
-  const diffs = pairs(sort([0, ...inputs, target])).map((p) => p[1] - p[0]);
+const getCompleteList = (inputs) => sort([0, ...inputs, getTarget(inputs)]);
 
-  return getNum(diffs, 1) * getNum(diffs, 3);
-};
+const getNums = (diffs) => getNum(diffs, 1) * getNum(diffs, 3);
+
+const getPairDiff = (p) => p[1] - p[0];
+
+const task1 = (inputs) =>
+  getNums(pairs(getCompleteList(inputs)).map(getPairDiff));
 
 const within = (lst, target) => lst.filter((e) => e - target <= 0);
 
-const numPaths3 = (lst, cache = []) => {
-  const [a, ...rest] = lst;
-  return rest.length === 0
-    ? cache
-    : numPaths3(rest, [...cache, [a, within(rest, a + 3)]]);
-};
+const countBranches = (es, cache, target) =>
+  es.reduce((acc, e) => acc + (e === target ? 1 : cache[e]), 0);
 
-const n = (es, cache, target) =>
-  es.reduce((acc, e) => {
-    return acc + (e === target ? 1 : cache[e]);
-  }, 0);
+const updateCache = (cache, branch, target) => ({
+  ...cache,
+  [branch.num]: countBranches(branch.to, cache, target),
+});
 
-const process = (lst, target, cache = {}) => {
-  const [a, ...rest] = lst;
-  cache[a[0]] = n(a[1], cache, target);
-  return rest.length ? process(rest, target, cache) : cache[a[0]];
-};
+const computeNext = (branches, cache, target) =>
+  branches.length > 1
+    ? traverse(branches.slice(1), target, cache)
+    : cache[branches[0].num];
 
-const task2 = (inputs) => {
-  const target = max(inputs) + 3;
-  const sorted = [0, ...sort(inputs), target];
-  return process(numPaths3(sorted).reverse(), target);
-};
+const traverse = (branches, target, cache = {}) =>
+  computeNext(branches, updateCache(cache, branches[0], target));
+
+const getBranches = (inputs) =>
+  inputs.slice(0, -1).map((num, i) => ({
+    num,
+    to: within(inputs.slice(i + 1), num + 3),
+  }));
+
+const task2 = (inputs) =>
+  traverse(getBranches(getCompleteList(inputs)).reverse(), getTarget(inputs));
 
 const main = async () => {
   const testinput1 = await readInts("testinput.txt");
