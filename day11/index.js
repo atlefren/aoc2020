@@ -5,33 +5,24 @@ const range = (start, stop, step = 1) =>
     .fill(start)
     .map((x, y) => x + y * step);
 
-const getAdjacent1 = (x, y, board) =>
-  range(x - 1, x + 2)
-    .map((xx) =>
-      range(y - 1, y + 2).map((yy) => {
-        //console.log(xx, yy);
-        return board[xx] && board[xx][yy]
-          ? xx === x && yy == y
-            ? undefined
-            : board[xx][yy]
-          : undefined;
-      })
-    )
-    .flat();
+//yeah, but ugly, i know
+const equals = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-const printBoard = (board) => board.map((l) => l.join("")).join("\n");
+const isFreeAndHasNoAdjacentOccupied = (seat, adjacent) =>
+  seat === "L" && adjacent.filter((s) => s === "#").length === 0;
 
-const handleSeatChange = (seat, board, x, y, numOccupied, getAdjacent) => {
-  const adjacent = getAdjacent(x, y, board);
+const isOccupiedAndHasMoreThanNNeighboursOccupied = (numOccupied) => (
+  seat,
+  adjacent
+) => seat === "#" && adjacent.filter((s) => s === "#").length >= numOccupied;
 
-  if (seat === "L" && adjacent.filter((s) => s === "#").length === 0) {
-    return "#";
-  }
-  if (seat === "#" && adjacent.filter((s) => s === "#").length >= numOccupied) {
-    return "L";
-  }
-  return seat;
-};
+const handleSeatChange = (seat, board, x, y, numOccupied, getAdjacent) =>
+  ((adjacent) =>
+    isFreeAndHasNoAdjacentOccupied(seat, adjacent)
+      ? "#"
+      : isOccupiedAndHasMoreThanNNeighboursOccupied(numOccupied)(seat, adjacent)
+      ? "L"
+      : seat)(getAdjacent(x, y, board));
 
 const change = (seat, board, x, y, numOccupied, getAdjacent) =>
   seat === "."
@@ -43,40 +34,46 @@ const model = (board, numOccupied, getAdjacent) =>
     line.map((seat, y) => change(seat, board, x, y, numOccupied, getAdjacent))
   );
 
-const equals = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-
-const converge = (board, numOccupied, getAdjacent) => {
-  const n = model(board, numOccupied, getAdjacent);
-  if (equals(n, board)) {
-    return n;
-  }
-  return converge(n, numOccupied, getAdjacent);
-};
+const converge = (board, numOccupied, getAdjacent) =>
+  ((newBoard) =>
+    equals(newBoard, board)
+      ? newBoard
+      : converge(newBoard, numOccupied, getAdjacent))(
+    model(board, numOccupied, getAdjacent)
+  );
 
 const countOccupied = (board) =>
   board.reduce((acc, l) => acc + l.filter((s) => s === "#").length, 0);
 
-const task1 = (input, print) => {
-  const board = input.map((l) => l.split(""));
-  const c = converge(board, 4, getAdjacent1);
-  if (print) {
-    console.log(printBoard(board));
-    console.log("\n\n");
-    console.log(printBoard(c));
-  }
-  return countOccupied(c);
-};
+const parseBoard = (input) => input.map((l) => l.split(""));
 
-const line = (board, x, y, dx, dy) => {
-  const xx = x + dx;
-  const yy = y + dy;
+const task = (input, numOccupied, getAdjacent) =>
+  countOccupied(converge(parseBoard(input), numOccupied, getAdjacent));
 
-  if (!board[xx] || !board[xx][yy]) {
-    return;
-  }
+const getAdjacent1 = (x, y, board) =>
+  range(x - 1, x + 2)
+    .map((xx) =>
+      range(y - 1, y + 2).map((yy) =>
+        board[xx] && board[xx][yy]
+          ? xx === x && yy == y
+            ? undefined
+            : board[xx][yy]
+          : undefined
+      )
+    )
+    .flat();
 
-  return board[xx][yy] === "." ? line(board, xx, yy, dx, dy) : board[xx][yy];
-};
+const task1 = (input) => task(input, 4, getAdjacent1);
+
+const inc = (x, y, dx, dy) => [x + dx, y + dy];
+
+const line = (board, x, y, dx, dy) =>
+  ((board, xx, yy, dx, dy) =>
+    !board[xx] || !board[xx][yy]
+      ? undefined
+      : board[xx][yy] === "."
+      ? line(board, xx, yy, dx, dy)
+      : board[xx][yy])(board, ...inc(x, y, dx, dy), dx, dy);
 
 const getAdjacent2 = (x, y, board) =>
   range(-1, 2)
@@ -87,16 +84,7 @@ const getAdjacent2 = (x, y, board) =>
     )
     .flat();
 
-const task2 = (input, print) => {
-  const board = input.map((l) => l.split(""));
-  const c = converge(board, 5, getAdjacent2);
-  if (print) {
-    console.log(printBoard(board));
-    console.log("\n\n");
-    console.log(printBoard(c));
-  }
-  return countOccupied(c);
-};
+const task2 = (input) => task(input, 5, getAdjacent2);
 
 const main = async () => {
   const testinput = await readFile("testinput.txt");
@@ -106,8 +94,9 @@ const main = async () => {
   console.log(task1(input) === 2468);
 
   console.log(task2(testinput) === 26);
-
+  console.time("a");
   console.log(task2(input) === 2214);
+  console.timeEnd("a");
 };
 
 main();
